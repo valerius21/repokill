@@ -1,3 +1,5 @@
+// Package main provides the entry point for repokill, a TUI tool for bulk-deleting
+// GitHub repositories.
 package main
 
 import (
@@ -29,38 +31,19 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Build filter options
-	var filterOpts filter.FilterOptions
-	if *public {
-		filterOpts.Visibility = "public"
-	} else if *private {
-		filterOpts.Visibility = "private"
-	}
-	if *archived {
-		trueVal := true
-		filterOpts.Archived = &trueVal
-	}
-	if *forked {
-		trueVal := true
-		filterOpts.Forked = &trueVal
-	}
-
-	// Default sort: by pushedAt ascending (oldest first)
+	filterOpts := buildFilterOptions(*public, *private, *archived, *forked)
 	sortOpts := filter.SortOptions{
 		Field: filter.SortByPushedAt,
 		Order: filter.Ascending,
 	}
 
-	// Create GitHub client
 	client := github.NewClient(*org, nil)
 
-	// Check authentication
 	if err := client.CheckAuth(context.Background()); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Run TUI
 	model := tui.New(client, filterOpts, sortOpts)
 	p := tea.NewProgram(model, tea.WithAltScreen())
 
@@ -68,4 +51,27 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+// buildFilterOptions constructs filter options from command-line flags.
+func buildFilterOptions(public, private, archived, forked bool) filter.FilterOptions {
+	var opts filter.FilterOptions
+
+	if public {
+		opts.Visibility = "public"
+	} else if private {
+		opts.Visibility = "private"
+	}
+
+	if archived {
+		trueVal := true
+		opts.Archived = &trueVal
+	}
+
+	if forked {
+		trueVal := true
+		opts.Forked = &trueVal
+	}
+
+	return opts
 }

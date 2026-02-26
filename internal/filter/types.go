@@ -1,3 +1,4 @@
+// Package filter provides types for repository filtering and sorting.
 package filter
 
 // SortField defines the field to sort by.

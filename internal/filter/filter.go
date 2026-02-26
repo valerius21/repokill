@@ -1,3 +1,4 @@
+// Package filter provides repository filtering and sorting functionality.
 package filter
 
 import (
@@ -12,22 +13,18 @@ func Filter(repos []github.Repo, opts FilterOptions) []github.Repo {
 	var filtered []github.Repo
 
 	for _, repo := range repos {
-		// Filter by Visibility
 		if opts.Visibility != "" && !strings.EqualFold(repo.Visibility, opts.Visibility) {
 			continue
 		}
 
-		// Filter by Archived
 		if opts.Archived != nil && repo.IsArchived != *opts.Archived {
 			continue
 		}
 
-		// Filter by Forked
 		if opts.Forked != nil && repo.IsFork != *opts.Forked {
 			continue
 		}
 
-		// Filter by SearchQuery
 		if opts.SearchQuery != "" {
 			query := strings.ToLower(opts.SearchQuery)
 			name := strings.ToLower(repo.Name)
@@ -45,7 +42,6 @@ func Filter(repos []github.Repo, opts FilterOptions) []github.Repo {
 
 // Sort returns a new slice of repositories sorted according to the given options.
 func Sort(repos []github.Repo, opts SortOptions) []github.Repo {
-	// Create a copy to avoid mutating the input
 	sorted := make([]github.Repo, len(repos))
 	copy(sorted, repos)
 

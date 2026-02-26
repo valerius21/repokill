@@ -1,3 +1,4 @@
+// Package tui provides styling for the terminal user interface.
 package tui
 
 import "github.com/charmbracelet/lipgloss"

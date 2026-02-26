@@ -2,13 +2,13 @@ package github
 
 import (
 	"context"
-	"errors"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os/exec"
+	"sort"
 	"strings"
 	"time"
-	"sort"
 )
 
 // CommandExecutor abstracts command execution for testability.
@@ -29,8 +29,9 @@ func (e *execCommandExecutor) LookPath(name string) (string, error) {
 	return exec.LookPath(name)
 }
 
+// Sentinel errors for common failure cases.
 var (
-	ErrGhNotInstalled  = errors.New("gh CLI not found. Install from https://cli.github.com")
+	ErrGhNotInstalled   = errors.New("gh CLI not found. Install from https://cli.github.com")
 	ErrNotAuthenticated = errors.New("Not logged in. Run `gh auth login` first.")
 	ErrMissingScope     = errors.New("Missing delete_repo scope. Run `gh auth refresh -s delete_repo`.")
 )
@@ -41,7 +42,9 @@ type Client struct {
 	executor CommandExecutor
 }
 
-// NewClient creates a new GitHub client.
+// NewClient creates a new GitHub client for the specified owner.
+// If owner is empty, operations target the authenticated user.
+// If executor is nil, the default exec-based executor is used.
 func NewClient(owner string, executor CommandExecutor) *Client {
 	if executor == nil {
 		executor = &execCommandExecutor{}
@@ -54,6 +57,7 @@ func NewClient(owner string, executor CommandExecutor) *Client {
 
 // ListRepos fetches repositories for the configured owner using the gh CLI.
 // If Owner is empty, it lists repositories for the authenticated user.
+// Results are sorted by PushedAt in ascending order (oldest first).
 func (c *Client) ListRepos(ctx context.Context) ([]Repo, error) {
 	args := []string{
 		"repo", "list",
@@ -75,13 +79,13 @@ func (c *Client) ListRepos(ctx context.Context) ([]Repo, error) {
 		return nil, fmt.Errorf("failed to parse gh output: %w", err)
 	}
 
-	// Sort by PushedAt ascending (oldest first)
 	sort.Slice(repos, func(i, j int) bool {
 		return repos[i].PushedAt.Before(repos[j].PushedAt)
 	})
 
 	return repos, nil
 }
+
 // CheckAuth verifies that the gh CLI is installed and the user is authenticated.
 func (c *Client) CheckAuth(ctx context.Context) error {
 	if _, err := c.executor.LookPath("gh"); err != nil {
@@ -95,21 +99,22 @@ func (c *Client) CheckAuth(ctx context.Context) error {
 
 	return nil
 }
+
 // DeleteProgressFn is a callback for tracking deletion progress.
 type DeleteProgressFn func(repo Repo, result DeleteResult, current int, total int)
 
-// DeleteRepos deletes the specified repositories sequentially with a 1-second throttle.
+// DeleteRepos deletes the specified repositories sequentially with a 1-second throttle
+// between requests to comply with GitHub's rate limits. It includes automatic retry
+// logic with exponential backoff for rate-limited requests (HTTP 429).
 func (c *Client) DeleteRepos(ctx context.Context, repos []Repo, onProgress DeleteProgressFn) []DeleteResult {
 	results := make([]DeleteResult, 0, len(repos))
 	total := len(repos)
 
 	for i, repo := range repos {
-		// Check for context cancellation before each deletion
 		if ctx.Err() != nil {
 			break
 		}
 
-		// Throttle: 1-second delay between deletions (GitHub mandate)
 		if i > 0 {
 			time.Sleep(1 * time.Second)
 		}
@@ -153,7 +158,6 @@ func (c *Client) DeleteRepos(ctx context.Context, repos []Repo, onProgress Delet
 				break
 			}
 
-			// Non-retryable errors
 			if strings.Contains(errMsg, "could not resolve") {
 				lastErr = fmt.Errorf("repo renamed or transferred: %s", errMsg)
 			} else if strings.Contains(errMsg, "HTTP 403") {

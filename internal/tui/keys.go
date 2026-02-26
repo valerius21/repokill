@@ -1,3 +1,4 @@
+// Package tui provides keybindings for the terminal user interface.
 package tui
 
 import "github.com/charmbracelet/bubbles/key"

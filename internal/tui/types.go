@@ -1,3 +1,4 @@
+// Package tui provides types for the terminal user interface.
 package tui
 
 import (

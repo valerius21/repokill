@@ -1,6 +1,20 @@
 # repokill
 
+[![Release](https://img.shields.io/github/v/release/valerius21/repokill?include_prereleases)](https://github.com/valerius21/repokill/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/valerius21/repokill)](https://goreportcard.com/report/github.com/valerius21/repokill)
+[![License](https://img.shields.io/github/license/valerius21/repokill)](LICENSE)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/valerius21/repokill)](go.mod)
+
 A TUI tool for bulk-deleting GitHub repositories.
+
+## Features
+
+- List and browse repositories for authenticated user or organization
+- Filter by visibility (public/private), archived status, or forks
+- Search repos by name or description
+- Bulk select and delete multiple repositories
+- Rate limit handling with automatic retries and exponential backoff
+- Progress tracking during deletion operations
 
 ## Requirements
 
@@ -8,11 +22,17 @@ A TUI tool for bulk-deleting GitHub repositories.
 
 ## Installation
 
+### Binary Release
+
+Download the appropriate binary for your platform from the [Releases page](https://github.com/valerius21/repokill/releases).
+
+### Go Install
+
 ```bash
 go install github.com/valerius21/repokill@latest
 ```
 
-Or build from source:
+### Build from Source
 
 ```bash
 git clone https://github.com/valerius21/repokill.git
@@ -29,7 +49,28 @@ repokill --public           # Show only public repos
 repokill --private          # Show only private repos
 repokill --archived         # Show only archived repos
 repokill --forked           # Show only forks
+repokill --version          # Show version
 ```
+
+### Key Bindings
+
+| Key | Action |
+|-----|--------|
+| `j`/`↓` | Move down |
+| `k`/`↑` | Move up |
+| `space` | Toggle mark for deletion |
+| `a` | Select/deselect all |
+| `/` | Search |
+| `enter` | Confirm deletion |
+| `u`/`pgup` | Page up |
+| `d`/`pgdown` | Page down |
+| `g`/`home` | Go to top |
+| `G`/`end` | Go to bottom |
+| `q`/`ctrl+c` | Quit |
+
+## Documentation
+
+Full documentation is available at [https://valerius21.github.io/repokill](https://valerius21.github.io/repokill).
 
 ## License
 

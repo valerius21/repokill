@@ -1,3 +1,4 @@
+// Package github provides types for GitHub repository data.
 package github
 
 import "time"

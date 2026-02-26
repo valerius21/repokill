@@ -1,3 +1,4 @@
+// Package tui provides Bubble Tea commands for the terminal user interface.
 package tui
 
 import (
