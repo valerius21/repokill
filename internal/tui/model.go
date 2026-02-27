@@ -189,6 +189,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Normal key handling for non-search states
 		switch {
 		case key.Matches(msg, m.keys.Quit):
+			// Don't quit if we're in a done state waiting for user to continue
+			if m.state == StateDeleting && len(m.deleteResults) == len(m.deletingRepos) {
+				// Deletion done, return to list instead of quitting
+				m.state = StateList
+				m.selected = make(map[int]struct{})
+				return m, fetchRepos(m.client)
+			} else if m.state == StateArchiving && len(m.archiveResults) == len(m.archivingRepos) {
+				// Archiving done, return to list instead of quitting
+				m.state = StateList
+				m.selected = make(map[int]struct{})
+				return m, fetchRepos(m.client)
+			} else if m.state == StateChangingVisibilityPrivate && len(m.visibilityResults) == len(m.changingVisibilityRepos) {
+				// Visibility change done, return to list instead of quitting
+				m.state = StateList
+				m.selected = make(map[int]struct{})
+				return m, fetchRepos(m.client)
+			} else if m.state == StateChangingVisibilityPublic && len(m.visibilityResults) == len(m.changingVisibilityRepos) {
+				// Visibility change done, return to list instead of quitting
+				m.state = StateList
+				m.selected = make(map[int]struct{})
+				return m, fetchRepos(m.client)
+			} else if m.state == StateBackingUp && len(m.backupResults) == len(m.backingUpRepos) {
+				// Backup done, return to list instead of quitting
+				m.state = StateList
+				m.selected = make(map[int]struct{})
+				return m, fetchRepos(m.client)
+			}
 			return m, tea.Quit
 
 		case msg.String() == "/":
@@ -313,7 +340,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case key.Matches(msg, m.keys.ToggleVisibilityPrivate):
-		case key.Matches(msg, m.keys.ToggleVisibilityPrivate):
+
 			if m.state == StateList {
 				if len(m.selected) == 0 {
 					m.flashMessage = "No repos selected"
@@ -397,6 +424,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = StateList
 			} else if m.state == StateConfirmVisibilityPublic {
 				m.state = StateList
+			}
+
+		case msg.String() == "" || msg.String() == "q": // Enter or q
+			if m.state == StateDeleting && len(m.deleteResults) == len(m.deletingRepos) {
+				m.state = StateList
+				m.selected = make(map[int]struct{})
+				return m, fetchRepos(m.client)
+			} else if m.state == StateArchiving && len(m.archiveResults) == len(m.archivingRepos) {
+				m.state = StateList
+				m.selected = make(map[int]struct{})
+				return m, fetchRepos(m.client)
+			} else if m.state == StateChangingVisibilityPrivate && len(m.visibilityResults) == len(m.changingVisibilityRepos) {
+				m.state = StateList
+				m.selected = make(map[int]struct{})
+				return m, fetchRepos(m.client)
+			} else if m.state == StateChangingVisibilityPublic && len(m.visibilityResults) == len(m.changingVisibilityRepos) {
+				m.state = StateList
+				m.selected = make(map[int]struct{})
+				return m, fetchRepos(m.client)
+			} else if m.state == StateBackingUp && len(m.backupResults) == len(m.backingUpRepos) {
+				m.state = StateList
+				m.selected = make(map[int]struct{})
+				return m, fetchRepos(m.client)
 			}
 		}
 
@@ -551,10 +601,10 @@ func (m Model) View() string {
 			"NAME", "VIS", "STAR", "FORK", "PUSHED", "FLAGS")) + "\n"
 
 		// Status Bar
-		status := fmt.Sprintf(" %d selected | %d repos | ↑↓ navigate | space mark | / search | enter delete | A archive | q quit ",
+		status := fmt.Sprintf(" %d selected | %d repos | ↑↓: navigate | space: mark | /: search | enter: delete | A: archive | p: private | P: public | B: backup | q: quit ",
 			len(m.selected), len(m.filtered))
 		if m.filterOpts.SearchQuery != "" {
-			status = fmt.Sprintf(" 🔍 %q | %d results | %d selected | ↑↓ navigate | space mark | / search | enter delete | A archive | q quit ",
+			status = fmt.Sprintf(" 🔍 %q | %d results | %d selected | ↑↓: navigate | space: mark | /: search | enter: delete | A: archive | p: private | P: public | B: backup | q: quit ",
 				m.filterOpts.SearchQuery, len(m.filtered), len(m.selected))
 		}
 		statusBar := StatusBarStyle.Render(status)
