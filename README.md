@@ -57,27 +57,23 @@ repokill --version          # Show version
 
 ### Key Bindings
 
-| Key | Action |
-|-----|--------|
-| `j`/`↓` | Move down |
-| `k`/`↑` | Move up |
-| `space` | Toggle mark |
-| `a` | Select/deselect all |
-| `/` | Search |
-| `enter` | Confirm deletion |
-| `A` | Archive selected repos |
-| `p` | Make selected repos private |
-| `P` | Make selected repos public |
-| `B` | Backup selected repos |
-| `u`/`pgup` | Page up |
-| `d`/`pgdown` | Page down |
-| `g`/`home` | Go to top |
-| `G`/`end` | Go to bottom |
-| `q`/`ctrl+c` | Quit |
-
-## Documentation
-
-Full documentation is available at [https://valerius21.github.io/repokill](https://valerius21.github.io/repokill).
+| Key          | Action                      |
+| ------------ | --------------------------- |
+| `j`/`↓`      | Move down                   |
+| `k`/`↑`      | Move up                     |
+| `space`      | Toggle mark                 |
+| `a`          | Select/deselect all         |
+| `/`          | Search                      |
+| `enter`      | Confirm deletion            |
+| `A`          | Archive selected repos      |
+| `p`          | Make selected repos private |
+| `P`          | Make selected repos public  |
+| `B`          | Backup selected repos       |
+| `u`/`pgup`   | Page up                     |
+| `d`/`pgdown` | Page down                   |
+| `g`/`home`   | Go to top                   |
+| `G`/`end`    | Go to bottom                |
+| `q`/`ctrl+c` | Quit                        |
 
 ## License
 
