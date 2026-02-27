@@ -26,3 +26,12 @@ type DeleteResult struct {
 	Error    error
 	Duration time.Duration
 }
+
+// BackupResult represents the outcome of a repository backup attempt.
+type BackupResult struct {
+	Repo     Repo
+	Success  bool
+	Error    error
+	Duration time.Duration
+	Skipped  bool // true if backup was skipped (repo already exists)
+}

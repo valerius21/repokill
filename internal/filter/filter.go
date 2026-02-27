@@ -80,7 +80,24 @@ func Sort(repos []github.Repo, opts SortOptions) []github.Repo {
 }
 
 // FilterAndSort applies both filtering and sorting to the input repositories.
-func FilterAndSort(repos []github.Repo, filterOpts FilterOptions, sortOpts SortOptions) []github.Repo {
+// Processed repos (those in processedRepos map) are sorted to the bottom.
+func FilterAndSort(repos []github.Repo, filterOpts FilterOptions, sortOpts SortOptions, processedRepos map[string]string) []github.Repo {
 	filtered := Filter(repos, filterOpts)
-	return Sort(filtered, sortOpts)
+
+	// Split into processed and unprocessed groups
+	var processed, unprocessed []github.Repo
+	for _, repo := range filtered {
+		if _, isProcessed := processedRepos[repo.NameWithOwner]; isProcessed {
+			processed = append(processed, repo)
+		} else {
+			unprocessed = append(unprocessed, repo)
+		}
+	}
+
+	// Sort each group independently
+	sortedUnprocessed := Sort(unprocessed, sortOpts)
+	sortedProcessed := Sort(processed, sortOpts)
+
+	// Concatenate: unprocessed first, then processed
+	return append(sortedUnprocessed, sortedProcessed...)
 }

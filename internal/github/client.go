@@ -186,3 +186,142 @@ func (c *Client) DeleteRepos(ctx context.Context, repos []Repo, onProgress Delet
 
 	return results
 }
+
+// ArchiveProgressFn is a callback for tracking archive progress.
+type ArchiveProgressFn func(repo Repo, result DeleteResult, current int, total int)
+
+// ArchiveRepos archives the specified repositories sequentially with a 1-second throttle
+// between requests to comply with GitHub's rate limits. It includes automatic retry
+// logic with exponential backoff for rate-limited requests (HTTP 429).
+// Note: Uses DeleteResult for the result since the structure is identical.
+func (c *Client) ArchiveRepos(ctx context.Context, repos []Repo, onProgress ArchiveProgressFn) []DeleteResult {
+	results := make([]DeleteResult, 0, len(repos))
+	total := len(repos)
+
+	for i, repo := range repos {
+		if ctx.Err() != nil {
+			break
+		}
+
+		if i > 0 {
+			time.Sleep(1 * time.Second)
+		}
+
+		start := time.Now()
+		var lastErr error
+		var success bool
+		backoff := 2 * time.Second
+		maxRetries := 5
+
+		for retry := 0; retry <= maxRetries; retry++ {
+			if ctx.Err() != nil {
+				lastErr = ctx.Err()
+				break
+			}
+
+			output, err := c.executor.Execute(ctx, "gh", "repo", "archive", repo.NameWithOwner, "--yes")
+
+			if err == nil {
+				success = true
+				lastErr = nil
+				break
+			}
+
+			errMsg := string(output)
+			if strings.Contains(errMsg, "HTTP 429") {
+				if retry < maxRetries {
+					select {
+					case <-ctx.Done():
+						lastErr = ctx.Err()
+						goto nextRepo
+					case <-time.After(backoff):
+						backoff *= 2
+						if backoff > 32*time.Second {
+							backoff = 32 * time.Second
+						}
+						continue
+					}
+				}
+				lastErr = fmt.Errorf("rate limited after %d retries: %s", maxRetries, errMsg)
+				break
+			}
+
+			if strings.Contains(errMsg, "could not resolve") {
+				lastErr = fmt.Errorf("repo renamed or transferred: %s", errMsg)
+			} else if strings.Contains(errMsg, "HTTP 403") {
+				lastErr = fmt.Errorf("permission denied: %s", errMsg)
+			} else if strings.Contains(errMsg, "HTTP 404") {
+				lastErr = fmt.Errorf("repo not found: %s", errMsg)
+			} else if strings.Contains(errMsg, "already archived") {
+				success = true // Already archived is effectively a success
+				lastErr = nil
+			} else {
+				lastErr = fmt.Errorf("gh repo archive failed: %v (output: %s)", err, errMsg)
+			}
+			break
+		}
+
+	nextRepo:
+		result := DeleteResult{
+			Repo:     repo,
+			Success:  success,
+			Error:    lastErr,
+			Duration: time.Since(start),
+		}
+		results = append(results, result)
+
+		if onProgress != nil {
+			onProgress(repo, result, i+1, total)
+		}
+	}
+
+	return results
+}
+
+// ChangeVisibilityResult represents the outcome of a visibility change operation.
+type ChangeVisibilityResult struct {
+	Repo     Repo
+	Success  bool
+	Error    error
+	Duration time.Duration
+	Private  bool // true if made private, false if made public
+}
+
+// ChangeVisibility changes a repository's visibility using the GitHub API.
+// PATCH /repos/{owner}/{repo} with JSON body {"private": true/false}
+func (c *Client) ChangeVisibility(ctx context.Context, repo Repo, makePrivate bool) ChangeVisibilityResult {
+	start := time.Now()
+	result := ChangeVisibilityResult{
+		Repo:    repo,
+		Private: makePrivate,
+	}
+
+	// Use gh api to change visibility
+	// PATCH /repos/{owner}/{repo} -f private=true/false
+	privateFlag := "true"
+	if !makePrivate {
+		privateFlag = "false"
+	}
+
+	output, err := c.executor.Execute(ctx, "gh", "api",
+		"repos/"+repo.NameWithOwner,
+		"-X", "PATCH",
+		"-f", "private="+privateFlag)
+
+	result.Duration = time.Since(start)
+
+	if err != nil {
+		errMsg := string(output)
+		if strings.Contains(errMsg, "HTTP 403") {
+			result.Error = fmt.Errorf("permission denied: %s", errMsg)
+		} else if strings.Contains(errMsg, "HTTP 404") {
+			result.Error = fmt.Errorf("repo not found: %s", errMsg)
+		} else {
+			result.Error = fmt.Errorf("gh api failed: %v (output: %s)", err, errMsg)
+		}
+		return result
+	}
+
+	result.Success = true
+	return result
+}

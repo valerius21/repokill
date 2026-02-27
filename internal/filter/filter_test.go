@@ -264,8 +264,7 @@ func TestFilterAndSort(t *testing.T) {
 		filterOpts := FilterOptions{Visibility: "public"}
 		sortOpts := SortOptions{Field: SortByPushedAt, Order: Descending}
 
-		result := FilterAndSort(testRepos, filterOpts, sortOpts)
-
+		result := FilterAndSort(testRepos, filterOpts, sortOpts, nil)
 		if len(result) != 2 {
 			t.Errorf("expected 2 public repos, got %d", len(result))
 		}
@@ -285,10 +284,95 @@ func TestFilterAndSort(t *testing.T) {
 
 		filterOpts := FilterOptions{Visibility: "public"}
 		sortOpts := SortOptions{Field: SortByName, Order: Ascending}
-		_ = FilterAndSort(testRepos, filterOpts, sortOpts)
-
+		_ = FilterAndSort(testRepos, filterOpts, sortOpts, nil)
 		if !slices.Equal(original, testRepos) {
 			t.Error("input slice was mutated")
+		}
+	})
+}
+
+func TestFilterAndSortProcessedRepos(t *testing.T) {
+	baseTime := time.Date(2024, 1, 15, 12, 0, 0, 0, time.UTC)
+	testRepos := []github.Repo{
+		{Name: "repo-a", NameWithOwner: "owner/repo-a", Visibility: "public", StargazerCount: 10, PushedAt: baseTime},
+		{Name: "repo-b", NameWithOwner: "owner/repo-b", Visibility: "public", StargazerCount: 20, PushedAt: baseTime.Add(1 * time.Hour)},
+		{Name: "repo-c", NameWithOwner: "owner/repo-c", Visibility: "public", StargazerCount: 30, PushedAt: baseTime.Add(2 * time.Hour)},
+	}
+
+	t.Run("processed repos sorted to bottom", func(t *testing.T) {
+		// Mark repo-b as processed (deleted)
+		processedRepos := map[string]string{
+			"owner/repo-b": "deleted",
+		}
+
+		filterOpts := FilterOptions{}
+		sortOpts := SortOptions{Field: SortByStars, Order: Descending}
+
+		result := FilterAndSort(testRepos, filterOpts, sortOpts, processedRepos)
+		if len(result) != 3 {
+			t.Errorf("expected 3 repos, got %d", len(result))
+		}
+
+		// Unprocessed repos should come first, sorted by stars descending
+		// repo-c (30 stars) should be first, repo-a (10 stars) second
+		// repo-b (processed) should be last
+		if result[0].Name != "repo-c" {
+			t.Errorf("expected repo-c first (30 stars), got %s", result[0].Name)
+		}
+		if result[1].Name != "repo-a" {
+			t.Errorf("expected repo-a second (10 stars), got %s", result[1].Name)
+		}
+		if result[2].Name != "repo-b" {
+			t.Errorf("expected repo-b last (processed), got %s", result[2].Name)
+		}
+	})
+
+	t.Run("multiple processed repos sorted among themselves", func(t *testing.T) {
+		// Mark repo-a and repo-c as processed
+		processedRepos := map[string]string{
+			"owner/repo-a": "archived",
+			"owner/repo-c": "deleted",
+		}
+
+		filterOpts := FilterOptions{}
+		sortOpts := SortOptions{Field: SortByStars, Order: Descending}
+
+		result := FilterAndSort(testRepos, filterOpts, sortOpts, processedRepos)
+		if len(result) != 3 {
+			t.Errorf("expected 3 repos, got %d", len(result))
+		}
+
+		// Only repo-b is unprocessed, should be first
+		// Then processed repos sorted by stars descending: repo-c (30), repo-a (10)
+		if result[0].Name != "repo-b" {
+			t.Errorf("expected repo-b first (unprocessed), got %s", result[0].Name)
+		}
+		if result[1].Name != "repo-c" {
+			t.Errorf("expected repo-c second (processed, 30 stars), got %s", result[1].Name)
+		}
+		if result[2].Name != "repo-a" {
+			t.Errorf("expected repo-a third (processed, 10 stars), got %s", result[2].Name)
+		}
+	})
+
+	t.Run("nil processedRepos map", func(t *testing.T) {
+		filterOpts := FilterOptions{}
+		sortOpts := SortOptions{Field: SortByStars, Order: Descending}
+
+		result := FilterAndSort(testRepos, filterOpts, sortOpts, nil)
+		if len(result) != 3 {
+			t.Errorf("expected 3 repos, got %d", len(result))
+		}
+
+		// All repos unprocessed, should be sorted by stars descending
+		if result[0].Name != "repo-c" {
+			t.Errorf("expected repo-c first (30 stars), got %s", result[0].Name)
+		}
+		if result[1].Name != "repo-b" {
+			t.Errorf("expected repo-b second (20 stars), got %s", result[1].Name)
+		}
+		if result[2].Name != "repo-a" {
+			t.Errorf("expected repo-a third (10 stars), got %s", result[2].Name)
 		}
 	})
 }

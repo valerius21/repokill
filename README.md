@@ -5,16 +5,19 @@
 [![License](https://img.shields.io/github/license/valerius21/repokill)](LICENSE)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/valerius21/repokill)](go.mod)
 
-A TUI tool for bulk-deleting GitHub repositories.
+A TUI tool for bulk-managing GitHub repositories.
 
 ## Features
 
 - List and browse repositories for authenticated user or organization
 - Filter by visibility (public/private), archived status, or forks
 - Search repos by name or description
-- Bulk select and delete multiple repositories
+- Bulk select and delete or archive multiple repositories
 - Rate limit handling with automatic retries and exponential backoff
-- Progress tracking during deletion operations
+- Progress tracking during deletion and archive operations
+- Bulk visibility change (make repos private/public)
+- Done/green sorting for processed repositories
+- Backup repositories as ZIP or shallow clone
 
 ## Requirements
 
@@ -58,10 +61,14 @@ repokill --version          # Show version
 |-----|--------|
 | `j`/`↓` | Move down |
 | `k`/`↑` | Move up |
-| `space` | Toggle mark for deletion |
+| `space` | Toggle mark |
 | `a` | Select/deselect all |
 | `/` | Search |
 | `enter` | Confirm deletion |
+| `A` | Archive selected repos |
+| `p` | Make selected repos private |
+| `P` | Make selected repos public |
+| `B` | Backup selected repos |
 | `u`/`pgup` | Page up |
 | `d`/`pgdown` | Page down |
 | `g`/`home` | Go to top |

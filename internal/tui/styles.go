@@ -75,4 +75,9 @@ var (
 	// StarStyle is the style for repository stars
 	StarStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FFFF00"))
+
+	// ProcessedRowStyle is the style for rows that have been processed (archived/deleted)
+	ProcessedRowStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#00FF00")).
+				Bold(true)
 )

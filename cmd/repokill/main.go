@@ -1,5 +1,5 @@
-// Package main provides the entry point for repokill, a TUI tool for bulk-deleting
-// GitHub repositories.
+// Package main provides the entry point for repokill, a TUI tool for bulk-managing
+// GitHub repositories (delete and archive operations).
 package main
 
 import (

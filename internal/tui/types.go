@@ -14,6 +14,15 @@ const (
 	StateSearch
 	StateConfirm
 	StateDeleting
+	StateConfirmArchive
+	StateArchiving
+	StateConfirmVisibilityPrivate
+	StateChangingVisibilityPrivate
+	StateConfirmVisibilityPublic
+	StateChangingVisibilityPublic
+	StateBackup
+	StateBackupConfirm
+	StateBackingUp
 	StateError
 )
 
